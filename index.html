@@ -44,6 +44,11 @@
   a.btn { display: inline-block; text-decoration: none; }
   .btn.big { font-size: 15px; padding: 18px 26px 22px; animation: pulse 1.8s ease-in-out infinite; }
   .btn.big small { display: block; font: 600 12px "Segoe UI", sans-serif; opacity: .85; margin-top: 8px; }
+  .os { margin-top: 12px; font-size: 14px; color: #e5ddff; }
+  .os a { color: #ffd23f; font-weight: 600; }
+  .os-help { margin-top: 8px; max-width: 520px; font-size: 13.5px; color: #e5ddff; }
+  .os-help summary { cursor: pointer; color: #c9b8ff; }
+  .os-help code { background: rgba(0,0,0,.3); padding: 1px 5px; font-size: 12px; word-break: break-all; }
   @keyframes pulse { 50% { transform: scale(1.035); } }
 
   .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px; align-items: center; margin: 46px 0 34px; }
@@ -99,6 +104,11 @@
       <h1 class="px">Один аккаунт для <em>Cat Launcher</em></h1>
       <p>Свой ник, свой скин, вход на серверах с поддержкой Cat Account. Дальше — друзья и эмоции, которые видят все, у кого Cat Launcher.</p>
       <a class="btn green big" href="CatLauncher-Setup.msi" download id="dl"><span>Скачать Cat Launcher</span><small id="dl-size">Windows 10/11 · 0,7 МБ · без прав администратора</small></a>
+      <div class="os">Есть для <a href="CatLauncher-Setup.msi" download>Windows</a> · <a href="https://github.com/KOTTdev/KOTTdev.github.io/releases/latest/download/CatLauncher-macOS.zip">macOS</a> · <a href="https://github.com/KOTTdev/KOTTdev.github.io/releases/latest/download/CatLauncher-linux-x64.tar.gz">Linux</a></div>
+      <details class="os-help"><summary>Как установить на macOS и Linux</summary>
+        <p><b>macOS 11+</b> (Intel и Apple Silicon): распакуй архив и перетащи CatLauncher в «Программы». При первом запуске macOS скажет, что разработчик неизвестен: открой «Системные настройки → Конфиденциальность и безопасность» и нажми «Всё равно открыть». Или в Терминале: <code>xattr -dr com.apple.quarantine /Applications/CatLauncher.app</code></p>
+        <p><b>Linux x64</b>: распакуй архив и запусти <code>./install.sh</code> — лаунчер появится в меню приложений. Java скачается сама.</p>
+      </details>
       <div style="margin-top:14px"><button class="btn primary" onclick="openTab('register')">Создать аккаунт</button>
       <button class="btn ghost" onclick="openTab('login')">Войти</button></div>
     </div>
@@ -207,6 +217,21 @@ function burst(x, y, color) {
 }
 document.addEventListener('click', e => { if (e.target.closest('.btn')) burst(e.clientX, e.clientY, '#c9b8ff'); });
 
+// ---------- downloads: the big button offers the visitor's own OS ----------
+(() => {
+  const rel = 'https://github.com/KOTTdev/KOTTdev.github.io/releases/latest/download/';
+  const ua = navigator.userAgent;
+  const os = /Macintosh|Mac OS X/.test(ua) && !/iPhone|iPad/.test(ua) ? 'mac' : /Linux|X11/.test(ua) && !/Android/.test(ua) ? 'linux' : 'win';
+  if (os === 'win') return;
+  const pick = os === 'mac'
+    ? [rel + 'CatLauncher-macOS.zip', 'macOS', 'macOS 11+ · Intel и Apple Silicon · 42 МБ']
+    : [rel + 'CatLauncher-linux-x64.tar.gz', 'Linux', 'Linux x64 · 38 МБ · ./install.sh'];
+  for (const id of ['dl', 'dl-top']) { const a = document.getElementById(id); a.href = pick[0]; a.removeAttribute('download'); }
+  document.querySelector('#dl span').textContent = 'Скачать для ' + pick[1];
+  document.getElementById('dl-size').textContent = pick[2];
+  document.querySelector('.os-help').open = true;
+})();
+
 // ---------- account ----------
 const OFFLINE = true; // static hosting: no Cat Account server here
 const api = (p, body, token) => OFFLINE ? Promise.reject(new Error('Регистрация в Cat Account скоро откроется! А пока играй офлайн или через Ely.by — лаунчер уже можно скачать.')) : fetch(p, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined })
@@ -312,6 +337,7 @@ if (tok) api('/api/me', null, tok).then(j => signedIn({ ...j, token: tok })).cat
     const el = document.getElementById(id);
     if (!el || !data) continue;
     el.addEventListener('click', async e => {
+      if (!(el.getAttribute('href') || '').endsWith('.msi')) return; // macOS / Linux buttons go to the release files
       e.preventDefault();
       if (location.protocol.startsWith('http')) {
         try { const r = await fetch(data.dataset.name, { method: 'HEAD', cache: 'no-store' }); if (r.ok) return save(data.dataset.name); } catch (_) {}
